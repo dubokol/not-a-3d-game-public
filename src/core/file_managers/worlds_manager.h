@@ -1,0 +1,23 @@
+#pragma once
+
+#include "utils.h"
+#include <map>
+#include <filesystem>
+#include <string>
+
+namespace fs = std::filesystem;
+
+class WorldsManager {
+    static constexpr int version = 1;
+    static constexpr char extension[] = ".txt";
+    static constexpr char worlds_folder_name[] = "worlds";
+
+public:
+    static void init();
+
+    static bool exists(const std::string &name);
+
+    static void save(const std::map<std::string, std::string> &state, const std::string &name);
+
+    static std::map<std::string, std::string> load(const std::string &name);
+};
