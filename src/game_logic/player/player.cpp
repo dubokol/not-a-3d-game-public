@@ -5,7 +5,16 @@
 
 using std::to_string;
 
-Player::Player() : x_(-1), y_(-1), z_(-1), escaped_(false), viewing_radius_(2), key_set_(6) {}
+static void log_key_set(const std::vector<int>& key_set) {
+    LOG("Current key_set: {" + std::to_string(key_set[0]) + ", "
+        + std::to_string(key_set[1]) + ", "
+        + std::to_string(key_set[2]) + ", "
+        + std::to_string(key_set[3]) + ", "
+        + std::to_string(key_set[4]) + ", "
+        + std::to_string(key_set[5]) + "}");
+}
+
+Player::Player() : x_(), y_(), z_(), escaped_(), viewing_radius_(), key_set_() {}
 
 void Player::reset(int start_x, int start_y, int start_z, bool hard_mode) {
     x_ = start_x;
@@ -13,6 +22,7 @@ void Player::reset(int start_x, int start_y, int start_z, bool hard_mode) {
     z_ = start_z;
     escaped_ = false;
     viewing_radius_ = 2;
+    key_set_.resize(6);
 
     if (hard_mode) {
         change_key_set();
@@ -54,12 +64,7 @@ void Player::set_viewing_radius(int viewing_radius) {
 
 void Player::set_default_key_set() {
     key_set_ = {1, 11, 10, 12, 0, 2};
-    LOG("Current key_set: {" + std::to_string(key_set_[0]) + ", "
-        + std::to_string(key_set_[1]) + ", "
-        + std::to_string(key_set_[2]) + ", "
-        + std::to_string(key_set_[3]) + ", "
-        + std::to_string(key_set_[4]) + ", "
-        + std::to_string(key_set_[5]) + "}");
+    log_key_set(key_set_);
 }
 
 void Player::change_key_set()
@@ -91,21 +96,14 @@ void Player::change_key_set()
     {
         key_set_[5] = rand() % 26;
     }
-    LOG("Current key_set: {" + std::to_string(key_set_[0]) + ", "
-                             + std::to_string(key_set_[1]) + ", "
-                             + std::to_string(key_set_[2]) + ", "
-                             + std::to_string(key_set_[3]) + ", "
-                             + std::to_string(key_set_[4]) + ", "
-                             + std::to_string(key_set_[5]) + "}");
+    log_key_set(key_set_);
 }
 
-int Player::get_viewing_radius() const
-{
+int Player::get_viewing_radius() const {
     return viewing_radius_;
 }
 
-const std::vector<int>& Player::get_key_set() const
-{
+const std::vector<int>& Player::get_key_set() const {
     return key_set_;
 }
 
@@ -116,7 +114,7 @@ std::map<std::string, std::string> Player::get_state() const {
     state[TO_STR(z_)] = to_string(z_);
     state[TO_STR(escaped_)] = to_string(escaped_);
     state[TO_STR(viewing_radius_)] = to_string(viewing_radius_);
-    for (int i = 0; i < 6; i++) state[std::string(TO_STR(key_set_)) + '[' + to_string(i) + ']'] = to_string(key_set_[i]);
+    for (int i = 0; i < key_set_.size(); i++) state[std::string(TO_STR(key_set_)) + '[' + to_string(i) + ']'] = to_string(key_set_[i]);
 
     return state;
 }
@@ -125,7 +123,8 @@ void Player::set_state(const std::map<std::string, std::string>& state) {
     x_ = std::stoi(state.at(TO_STR(x_)));
     y_ = std::stoi(state.at(TO_STR(y_)));
     z_ = std::stoi(state.at(TO_STR(z_)));
-    escaped_ = (state.at(TO_STR(escaped_)) == "1");
+    escaped_ = state.at(TO_STR(escaped_)) == "1";
     viewing_radius_ = std::stoi(state.at(TO_STR(viewing_radius_)));
-    for (int i = 0; i < 6; ++i) key_set_[i] = std::stoi(state.at(std::string(TO_STR(key_set_)) + '[' + to_string(i) + ']'));
+    key_set_.resize(6);
+    for (int i = 0; i < key_set_.size(); ++i) key_set_[i] = std::stoi(state.at(std::string(TO_STR(key_set_)) + '[' + to_string(i) + ']'));
 }

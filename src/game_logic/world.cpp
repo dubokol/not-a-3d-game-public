@@ -9,10 +9,10 @@ bool World::player_can_enter(int x, int y, int z) const {
 World::World() : game_grid_(), player_(), timer_(0), hard_mode_(false), name_() {}
 
 void World::reset(int max_x, int max_y, int max_z, bool hard_mode) {
+    timer_ = 0;
     hard_mode_ = hard_mode;
     game_grid_.reset(max_x, max_y, max_z, hard_mode_);
     player_.reset(game_grid_.get_start_x(), game_grid_.get_start_y(), game_grid_.get_start_z(), hard_mode_);
-    timer_ = 0;
     LOG("World has been reset");
 }
 

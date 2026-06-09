@@ -6,42 +6,44 @@
 #include <string>
 
 enum class CellType {
-    EMPTY,       // Пустая клетка
-    BLOCKED,     // Заблокированная клетка
-    OUTSIDE,     // Клетка за границами сетки
+    EMPTY,         // Пустая клетка
+    BLOCKED,       // Заблокированная клетка
+    OUTSIDE,       // Клетка за границами сетки
 };
 
 enum class Bonus {
-    NONE,        // Нет бонуса
-    BONUS1,      // Бонус 1
-    BONUS2       // Бонус 2
+    NONE,          // Нет бонуса
+    BONUS1,        // Бонус 1
+    BONUS2         // Бонус 2
 };
 
 struct Cell {
-    CellType type = CellType::OUTSIDE; // Значение по умолчанию
-    Bonus bonus = Bonus::NONE;         // Значение по умолчанию
+    CellType type = CellType::OUTSIDE;  // Значение по умолчанию
+    Bonus bonus = Bonus::NONE;          // Значение по умолчанию
 };
 
 class GameGrid {
-    double probability_of_empty_cell_;                      // Вероятность генерации пустой клетки
-    int seed_;                                              // Seed для генератора случайных чисел
+    double probability_of_empty_cell_;                                                // Вероятность генерации пустой клетки
+    int seed_;                                                                        // Seed для генератора случайных чисел
     int size_x_, size_y_, size_z_;
-    int start_x_, start_y_, start_z_;                       // Координаты стартовой позиции (x, y, z)
-    std::vector<std::vector<std::vector<Cell>>> grid_;      // 3D-сетка клеток [x][y][z]
-    std::vector<std::vector<std::vector<bool>>> can_visit_; // Можно ли попасть в клетку из старта
+    int start_x_, start_y_, start_z_;                                                 // Координаты стартовой позиции (x, y, z)
+    std::vector<std::vector<std::vector<Cell>>> grid_;                                // 3D-сетка клеток [x][y][z]
+    std::vector<std::vector<std::vector<bool>>> can_visit_;                           // Можно ли попасть в клетку из старта
+    std::map<Bonus, double> prob_of_bonus_;                                           // Вероятность генерации бонуса в пустой клетке
 
-    void compute_reachability();                            // Вычисляет достижимость клеток из старта с помощью BFS
+
+    void compute_reachability();                                                      // Вычисляет достижимость клеток из старта с помощью BFS
     bool dfs(int x, int y, int z, std::vector<std::vector<std::vector<bool>>> &used,
-             std::mt19937 &gen);                            // Поиск в глубину для генерации проходимого пути
-    void bonus_by_prob(const Bonus &bonus, double prob,
-                       std::mt19937 &gen);                  // Генерирует бонусы в пустых клетках с указанным шансом
+             std::mt19937 &gen);                                                      // Поиск в глубину для генерации проходимого пути
+    void bonus_by_prob(const Bonus &bonus, std::mt19937 &gen);                        // Генерирует бонусы в пустых клетках с указанным шансом
 
-    void generate(int seed);                                // Генерация сетки с указанным seed
+    void generate(int seed);                                                          // Генерация сетки с указанным seed
     void reset(int size_x, int size_y, int size_z, bool generate_bonus2, int seed);   // Пересоздание сетки с заданным размером
-public:
-    std::map<Bonus, double> prob_of_bonus_;                 // Вероятность генерации бонуса в пустой клетке
+    void set_default_probabilities();
+    void set_size(int size_x, int size_y, int size_z);
 
-    GameGrid();                                             // Конструктор, задает шансы появления бонусов и пустых клеток
+public:
+    GameGrid();                                                             // Конструктор, задает шансы появления бонусов и пустых клеток
 
     void reset(int size_x, int size_y, int size_z, bool generate_bonus2);   // Пересоздание сетки с заданным размером
 

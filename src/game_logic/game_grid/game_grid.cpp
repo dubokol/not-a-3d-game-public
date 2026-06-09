@@ -39,32 +39,38 @@ static std::string to_string(const CellType& type) {
     return str;
 }
 
-GameGrid::GameGrid() : probability_of_empty_cell_(0), seed_(-1), size_x_(-1), size_y_(-1), size_z_(-1), start_x_(-1), start_y_(-1), start_z_(-1) {
+GameGrid::GameGrid() : probability_of_empty_cell_(), seed_(), size_x_(), size_y_(), size_z_(), start_x_(), start_y_(), start_z_() {
+    set_default_probabilities();
+}
+
+void GameGrid::set_default_probabilities() {
     probability_of_empty_cell_ = 0.55;
     prob_of_bonus_[Bonus::BONUS1] = 0.05;
-    prob_of_bonus_[Bonus::BONUS2] = 0.03;
+    prob_of_bonus_[Bonus::BONUS2] = 0.50;
 }
 
-void GameGrid::reset(int size_x, int size_y, int size_z, bool generate_bonus2) {
-    reset(size_x, size_y, size_z, generate_bonus2, -1);
-}
-
-void GameGrid::reset(int size_x, int size_y, int size_z, bool generate_bonus2, int seed) {
+void GameGrid::set_size(int size_x, int size_y, int size_z) {
     size_x_ = size_x;
     size_y_ = size_y;
     size_z_ = size_z;
     if (size_x < 1 || size_y < 1 || size_z < 1) ERR("Minimum size of a 3d game_grid is 1.");
-    grid_.assign(size_x,
-                 std::vector<std::vector<Cell>>(size_y, std::vector<Cell>(size_z, {CellType::EMPTY, Bonus::NONE})));
+    grid_.assign(size_x, std::vector(size_y, std::vector<Cell>(size_z, {CellType::EMPTY, Bonus::NONE})));
+}
 
-    if (!generate_bonus2) {
-        auto temp = prob_of_bonus_;
-        prob_of_bonus_[Bonus::BONUS2] = 0.0;
-        generate(seed);
-        prob_of_bonus_ = temp;
-    } else {
-        generate(seed);
-    }
+void GameGrid::reset(int size_x, int size_y, int size_z, bool generate_bonus2) {
+    set_default_probabilities();
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_int_distribution<int> dist(0, 10000);
+    reset(size_x, size_y, size_z, generate_bonus2, dist(gen));
+}
+
+void GameGrid::reset(int size_x, int size_y, int size_z, bool generate_bonus2, int seed) {
+    set_size(size_x, size_y, size_z);
+
+    if (!generate_bonus2) prob_of_bonus_[Bonus::BONUS2] = 0.0;
+
+    generate(seed);
 }
 
 const std::vector<std::vector<std::vector<Cell>>> &GameGrid::get_grid() const {
@@ -169,13 +175,13 @@ bool GameGrid::dfs(int x, int y, int z, std::vector<std::vector<std::vector<bool
     };
 
     if (size_z_ > 1) {
-        directions.push_back({0,  0,  1});
-        directions.push_back({0,  0,  -1});
+        directions.emplace_back(0,  0,  1);
+        directions.emplace_back(0,  0,  -1);
     }
 
-    std::shuffle(directions.begin(), directions.end(), gen);
+    std::ranges::shuffle(directions, gen);
 
-    for (auto [dx, dy, dz]: directions) {
+    for (const auto& [dx, dy, dz]: directions) {
         int nx = x + dx;
         int ny = y + dy;
         int nz = z + dz;
@@ -198,7 +204,7 @@ void GameGrid::compute_reachability() {
     int size_y = get_size_y();
     int size_z = get_size_z();
 
-    can_visit_.assign(size_x, std::vector<std::vector<bool>>(size_y, std::vector<bool>(size_z, false)));
+    can_visit_.assign(size_x, std::vector(size_y, std::vector(size_z, false)));
 
     if (is_outside(start_x_, start_y_, start_z_) ||
         grid_[start_x_][start_y_][start_z_].type != CellType::EMPTY) {
@@ -206,7 +212,7 @@ void GameGrid::compute_reachability() {
     }
 
     std::queue<std::tuple<int, int, int>> q;
-    q.push({start_x_, start_y_, start_z_});
+    q.emplace(start_x_, start_y_, start_z_);
     can_visit_[start_x_][start_y_][start_z_] = true;
 
     std::vector<std::tuple<int, int, int>> directions = {
@@ -222,17 +228,17 @@ void GameGrid::compute_reachability() {
         auto [x, y, z] = q.front();
         q.pop();
 
-        for (auto [dx, dy, dz]: directions) {
+        for (const auto& [dx, dy, dz]: directions) {
             int nx = x + dx, ny = y + dy, nz = z + dz;
             if (!is_outside(nx, ny, nz) && grid_[nx][ny][nz].type == CellType::EMPTY && !can_visit_[nx][ny][nz]) {
                 can_visit_[nx][ny][nz] = true;
-                q.push({nx, ny, nz});
+                q.emplace(nx, ny, nz);
             }
         }
     }
 }
 
-void GameGrid::bonus_by_prob(const Bonus &bonus, double prob, std::mt19937 &gen) {
+void GameGrid::bonus_by_prob(const Bonus &bonus, std::mt19937 &gen) {
     std::uniform_real_distribution<double> prob_dist(0.0, 1.0);
 
     int size_x = get_size_x();
@@ -243,7 +249,7 @@ void GameGrid::bonus_by_prob(const Bonus &bonus, double prob, std::mt19937 &gen)
             for (int z = 0; z < size_z; z++) {
                 if (grid_[x][y][z].type == CellType::EMPTY && grid_[x][y][z].bonus == Bonus::NONE &&
                     !is_start(x, y, z) && is_reachable(x, y, z)) {
-                    bool good_chance = (prob_dist(gen) <= prob);
+                    bool good_chance = prob_dist(gen) < prob_of_bonus_[bonus];
                     grid_[x][y][z].bonus = good_chance ? bonus : Bonus::NONE;
                 }
             }
@@ -252,14 +258,6 @@ void GameGrid::bonus_by_prob(const Bonus &bonus, double prob, std::mt19937 &gen)
 }
 
 void GameGrid::generate(int seed) {
-    if (seed < 0) {
-        if (seed != -1) LOG("Should be -1, but got " + to_string(seed));
-        std::random_device rd;
-        std::mt19937 gen(rd());
-        std::uniform_int_distribution<int> dist(0, 10000);
-        seed = dist(gen);
-    }
-
     std::mt19937 gen(seed);
     std::uniform_real_distribution<double> prob_dist(0.0, 1.0);
 
@@ -279,22 +277,20 @@ void GameGrid::generate(int seed) {
     for (int x = 0; x < size_x; x++) {
         for (int y = 0; y < size_y; y++) {
             for (int z = 0; z < size_z; z++) {
-                bool filled = (prob_dist(gen) > probability_of_empty_cell_);
-                grid_[x][y][z].type = filled ? CellType::BLOCKED : CellType::EMPTY;
+                bool empty = prob_dist(gen) < probability_of_empty_cell_;
+                grid_[x][y][z].type = empty ? CellType::EMPTY : CellType::BLOCKED;
             }
         }
     }
 
-    std::vector<std::vector<std::vector<bool>>> used(size_x, std::vector<std::vector<bool>>(size_y,
-                                                                                           std::vector<bool>(size_z,
-                                                                                                             false)));
+    std::vector used(size_x, std::vector(size_y, std::vector(size_z, false)));
 
     dfs(start_x, start_y, start_z, used, gen);
 
     compute_reachability();
 
     for (auto &[bonus, prob]: prob_of_bonus_) {
-        bonus_by_prob(bonus, prob_of_bonus_[bonus], gen);
+        bonus_by_prob(bonus, gen);
     }
 }
 
@@ -305,24 +301,20 @@ std::map<std::string, std::string> GameGrid::get_state() const {
     state[TO_STR(size_x_)] = to_string(size_x_);
     state[TO_STR(size_y_)] = to_string(size_y_);
     state[TO_STR(size_z_)] = to_string(size_z_);
-    for (auto& [bonus, d] : prob_of_bonus_) {
-        state[to_string(bonus)] = to_string(d);
-    }
+    for (const auto& [bonus, d] : prob_of_bonus_) state[to_string(bonus)] = to_string(d);
+
     return state;
 }
 
 void GameGrid::set_state(const std::map<std::string, std::string>& state) {
-    auto copy = state;
-    double probability_of_empty_cell = stod(copy[TO_STR(probability_of_empty_cell_)]);
-    int seed = stoi(copy[TO_STR(seed_)]);
-    int size_x = stoi(copy[TO_STR(size_x_)]);
-    int size_y = stoi(copy[TO_STR(size_y_)]);
-    int size_z = stoi(copy[TO_STR(size_z_)]);
+    double probability_of_empty_cell = std::stod(state.at(TO_STR(probability_of_empty_cell_)));
+    int seed = std::stoi(state.at(TO_STR(seed_)));
+    int size_x = std::stoi(state.at(TO_STR(size_x_)));
+    int size_y = std::stoi(state.at(TO_STR(size_y_)));
+    int size_z = std::stoi(state.at(TO_STR(size_z_)));
 
-    for (auto& [bonus, d] : prob_of_bonus_) {
-        d = stod(copy[to_string(bonus)]);
-    }
     probability_of_empty_cell_ = probability_of_empty_cell;
-    seed_ = seed;
-    reset(size_x, size_y, size_z, stoi(state.find(TO_STR(hard_mode_))->second), seed_);
+    for (auto& [bonus, d] : prob_of_bonus_) d = std::stod(state.at(to_string(bonus)));
+
+    reset(size_x, size_y, size_z, std::stoi(state.at(TO_STR(hard_mode_))), seed);
 }

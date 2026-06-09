@@ -13,10 +13,10 @@ class World {
     bool hard_mode_;
     std::string name_;
 
-    bool player_can_enter(int x, int y, int z) const; // Проверяет может ли игрок быть в клетке
+    bool player_can_enter(int x, int y, int z) const;                 // Проверяет может ли игрок быть в клетке
 
 public:
-    World();                                          // Создает мир
+    World();                                                          // Создает мир
 
     void reset(int max_x, int max_y, int max_z, bool hard_mode);      // Пересоздает мир
     void move_player(int dx, int dy, int dz);                         // Двигает игрока
