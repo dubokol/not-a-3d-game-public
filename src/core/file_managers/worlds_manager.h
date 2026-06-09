@@ -11,9 +11,11 @@ class WorldsManager {
     static constexpr int version = 1;
     static constexpr char extension[] = ".txt";
     static constexpr char worlds_folder_name[] = "worlds";
+    static inline bool initialized = false;
+
+    static void init();
 
 public:
-    static void init();
 
     static bool exists(const std::string &name);
 

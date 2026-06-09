@@ -111,7 +111,7 @@ public:
         buttons_.pop_back();
     }
 
-    std::string buttons_processing()
+    std::string buttons_processing() const
     {
         SDL_Event event;
         while (SDL_PollEvent(&event))
@@ -124,7 +124,7 @@ public:
                 }
             }
             if (event.type == SDL_EVENT_QUIT || event.type == SDL_EVENT_WINDOW_CLOSE_REQUESTED) {
-                return "ESC";
+                return "QUIT";
             }
         }
         return "None";

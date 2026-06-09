@@ -12,12 +12,14 @@ class LogsManager {
     static constexpr char extension[] = ".txt";
     static constexpr char main_log_name[] = "log";
     static constexpr char logs_folder_name[] = "logs";
+    static inline bool initialized = false;
     static const fs::path current_log_file;
 
     static std::ofstream &get_log_stream();
+    static void log_local_time();
+    static void init();
 
 public:
-    static void init();
 
     template<class T>
     static void log(const T &msg, const char *file, int line) {

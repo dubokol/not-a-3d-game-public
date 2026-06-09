@@ -12,6 +12,7 @@ void Player::reset(int start_x, int start_y, int start_z, bool hard_mode) {
     y_ = start_y;
     z_ = start_z;
     escaped_ = false;
+    viewing_radius_ = 2;
 
     if (hard_mode) {
         change_key_set();

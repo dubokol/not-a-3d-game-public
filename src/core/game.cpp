@@ -1,9 +1,9 @@
-#include <iostream>
 #include "game.h"
 #include "logger.h"
 #include "graphics/game_graphic.h"
 #include "core/input_handler/input_handler.h"
 #include "core/file_managers/worlds_manager.h"
+#include <string>
 
 static constexpr int keys[] = {SDLK_Q, SDLK_W, SDLK_E, SDLK_R, SDLK_T, SDLK_Y, SDLK_U, SDLK_I, SDLK_O, SDLK_P,
                                SDLK_A, SDLK_S, SDLK_D, SDLK_F, SDLK_G, SDLK_H, SDLK_J, SDLK_K, SDLK_L,
@@ -61,7 +61,7 @@ std::tuple<int, int, int, int, bool, int> Game::run_menu()
     Button test_readings(rct, std::to_string(mult));
     test_readings.normalColor = {0, 0, 0, 255};
 
-    while (is_running_) {
+    while (is_running_ && state_ == State::MENU) {
         menu_window.update(buttons);
         multiplier_readings.text = std::to_string(mult);
         x_readings.text = std::to_string(x);
@@ -74,7 +74,7 @@ std::tuple<int, int, int, int, bool, int> Game::run_menu()
         z_readings.render(menu_window.mrender_, menu_window.mfont_);
         test_readings.render(menu_window.mrender_, menu_window.mfont_);
         button_was_pressed = buttons.buttons_processing();
-        if (button_was_pressed == "START") break;
+        if (button_was_pressed == "START") state_ = State::GAME;
         else if (button_was_pressed == "OFF") {
             menu_window.Hard_Mode.text = "ON";
             hard_mode = true;
@@ -108,11 +108,12 @@ std::tuple<int, int, int, int, bool, int> Game::run_menu()
         else if (button_was_pressed == "T+1") test += 1;
         else if (button_was_pressed == "T-1") test -= 1;
         else if (button_was_pressed == "T=0") test = 0;
-        else if (button_was_pressed == "ESC") is_running_ = false;
+        else if (button_was_pressed == "QUIT") is_running_ = false;
         check(x, 1);
         check(y, 1);
         check(z, 1);
         check(mult, min_mult);
+        if (button_was_pressed != "None") LOG("Menu: button \"" + std::string(button_was_pressed) + "\" was pressed");
     }
     return {mult, x, y, z, hard_mode, test};
 }
@@ -126,6 +127,7 @@ void Game::run() {
     }
 
     is_running_ = true;
+    LOG("Here we go again!");
 
     while (is_running_)
     {
@@ -154,10 +156,13 @@ void Game::run() {
         LOG(world_.get_state());
 
         state_ = State::GAME;
-        while (state_ == State::GAME) {
+        while (is_running_ && state_ == State::GAME) {
             input.update();
 
-            if (input.isQuit()) break;
+            if (input.isQuit() || input.isKeyDown(SDLK_ESCAPE)) {
+                state_ = State::MENU;
+                LOG("Game: Quit");
+            }
 
             switch (state_) {
                 case (State::MENU):

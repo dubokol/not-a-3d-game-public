@@ -1,5 +1,4 @@
 #include "logs_manager.h"
-#include "logger.h"
 #include <chrono>
 #include <format>
 
@@ -12,7 +11,7 @@ const fs::path LogsManager::current_log_file = []() {
 
     int max_id = 0; // current format: "logXXX.txt"
 
-    for (const auto &entry: fs::directory_iterator(logs_folder_name)) {
+    for (const auto &entry: fs::directory_iterator(folder_path)) {
         if (entry.is_regular_file()) {
             std::string file_name = entry.path().filename().string();
 
@@ -33,24 +32,37 @@ const fs::path LogsManager::current_log_file = []() {
     return EXE_DIR / logs_folder_name / (main_log_name + std::to_string(max_id + 1) + extension);
 }();
 
-void LogsManager::init() {
-    fs::path folder_path = EXE_DIR / logs_folder_name;
-    bool created = fs::create_directories(folder_path);
-
-    if (created) {
-        LOG("Folder " + folder_path.string() + " created");
-    }
-
+void LogsManager::log_local_time() {
     auto &out = get_log_stream();
-    out << std::format("{:%d.%m.%Y %H:%M:%S}\n", get_local_time());
+    out << std::format("{:%d.%m.%Y %H:%M:%S}", get_local_time()) << std::endl;
+}
+
+void LogsManager::init() {
+    if (initialized) return;
+
+    fs::path folder_path = EXE_DIR / logs_folder_name;
+    fs::create_directories(folder_path);
+
+    initialized = true;
+
+    log_local_time();
 }
 
 std::ofstream &LogsManager::get_log_stream() {
+    init();
     static std::ofstream out(current_log_file, std::ios::app);
     if (!out.is_open()) {
         std::cerr << "ERROR: Cannot open log file: " << current_log_file.string() << std::endl;
         std::exit(1);
     }
+
+    static struct FinalLogWriter {
+        ~FinalLogWriter() {
+            log_local_time();
+            out.close();
+        }
+    } final_writer;
+
     return out;
 }
 

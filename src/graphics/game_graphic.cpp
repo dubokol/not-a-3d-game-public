@@ -99,6 +99,9 @@ void MenuWindow::link_buttons(Buttons& buttons)
 
 MenuWindow::~MenuWindow()
 {
+    if (mfont_) {
+        TTF_CloseFont(mfont_);
+    }
     if (mrender_) {
         SDL_DestroyRenderer(mrender_);
     }

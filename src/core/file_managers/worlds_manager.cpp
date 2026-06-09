@@ -1,13 +1,17 @@
 #include "worlds_manager.h"
 #include "logger.h"
 
-void WorldsManager::init() {
-    fs::path folder_path = EXE_DIR / worlds_folder_name;
-    bool created = fs::create_directories(folder_path);
 
-    if (created) {
+void WorldsManager::init() {
+    if (initialized) return;
+
+    fs::path folder_path = EXE_DIR / worlds_folder_name;
+
+    if (fs::create_directories(folder_path)) {
         LOG("Folder " + folder_path.string() + " created");
     }
+
+    initialized = true;
 }
 
 bool WorldsManager::exists(const std::string &name) {
@@ -16,6 +20,7 @@ bool WorldsManager::exists(const std::string &name) {
 }
 
 void WorldsManager::save(const std::map<std::string, std::string>& state, const std::string& name) {
+    init();
     fs::path file_path = EXE_DIR / worlds_folder_name / (name + extension);
     std::ofstream out(file_path, std::ios::trunc);
     if (!out.is_open()) {
@@ -37,6 +42,7 @@ void WorldsManager::save(const std::map<std::string, std::string>& state, const 
 }
 
 std::map<std::string, std::string> WorldsManager::load(const std::string& name) {
+    init();
     fs::path file_path = EXE_DIR / worlds_folder_name / (name + extension);
     std::ifstream in(file_path);
     if (!in.is_open()) {
